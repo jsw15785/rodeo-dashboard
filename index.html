@@ -1,0 +1,2029 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rodeo Houston · Sales Terminal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Bitter:wght@400;600;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.min.js"></script>
+<style>
+:root {
+  --bg: #0F0E0C;
+  --bg-2: #1A1814;
+  --bg-3: #252220;
+  --line: #3A352F;
+  --line-soft: #2A2622;
+  --text: #F5EFE3;
+  --text-mute: #9C9183;
+  --text-dim: #5C5447;
+  --orange: #DA6022;
+  --orange-bright: #FF7733;
+  --orange-dark: #B54A15;
+  --cream: #F5E6D3;
+  --green: #5FAE5F;
+  --red: #D85050;
+  --gold: #C9A961;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+body {
+  background:
+    radial-gradient(circle at 0% 0%, rgba(218, 96, 34, 0.06) 0%, transparent 40%),
+    radial-gradient(circle at 100% 100%, rgba(201, 169, 97, 0.04) 0%, transparent 40%),
+    var(--bg);
+}
+
+/* === LOGIN GATE === */
+.gate {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  flex-direction: column;
+}
+
+.gate.hidden { display: none; }
+
+.gate-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 30% 50%, rgba(218, 96, 34, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 70% 50%, rgba(201, 169, 97, 0.1) 0%, transparent 50%);
+  filter: blur(40px);
+  z-index: -1;
+}
+
+.gate-content {
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  padding: 64px 56px;
+  max-width: 440px;
+  width: 100%;
+  text-align: center;
+  position: relative;
+}
+
+.gate-content::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--orange), transparent);
+}
+
+.gate-mark {
+  font-family: 'Bitter', serif;
+  font-weight: 800;
+  font-size: 52px;
+  letter-spacing: -0.02em;
+  line-height: 0.95;
+  color: var(--cream);
+  margin-bottom: 6px;
+}
+
+.gate-mark span {
+  color: var(--orange);
+}
+
+.gate-sub {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.4em;
+  color: var(--text-mute);
+  margin-bottom: 48px;
+  text-transform: uppercase;
+}
+
+.gate input {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  color: var(--text);
+  padding: 14px 16px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  letter-spacing: 0.1em;
+  margin-bottom: 16px;
+  text-align: center;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.gate input:focus {
+  border-color: var(--orange);
+}
+
+.gate button {
+  width: 100%;
+  background: var(--orange);
+  border: none;
+  color: white;
+  padding: 14px 16px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.gate button:hover { background: var(--orange-bright); }
+.gate button:active { transform: translateY(1px); }
+
+.gate-error {
+  color: var(--red);
+  font-size: 12px;
+  margin-top: 12px;
+  height: 16px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* === LOADING === */
+.loading {
+  position: fixed; inset: 0;
+  background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 900;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.loading.hidden { display: none; }
+
+.loading-bar {
+  width: 240px;
+  height: 2px;
+  background: var(--bg-3);
+  overflow: hidden;
+  position: relative;
+}
+
+.loading-bar::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; height: 100%; width: 40%;
+  background: var(--orange);
+  animation: load 1.2s infinite ease-in-out;
+}
+
+@keyframes load {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(350%); }
+}
+
+.loading-text {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.3em;
+  color: var(--text-mute);
+  text-transform: uppercase;
+}
+
+/* === HEADER === */
+.header {
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-2);
+  padding: 16px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  backdrop-filter: blur(8px);
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+}
+
+.brand-mark {
+  font-family: 'Bitter', serif;
+  font-weight: 800;
+  font-size: 20px;
+  letter-spacing: -0.01em;
+}
+.brand-mark span { color: var(--orange); }
+
+.brand-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.3em;
+  color: var(--text-mute);
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border: 1px solid var(--line);
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-mute);
+}
+
+.live-dot {
+  width: 8px; height: 8px;
+  background: var(--green);
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 8px;
+  box-shadow: 0 0 8px var(--green);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.refresh-btn {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--text-mute);
+  padding: 6px 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.refresh-btn:hover {
+  color: var(--orange);
+  border-color: var(--orange);
+}
+
+/* === LAYOUT === */
+.main {
+  padding: 32px;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+.tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 32px;
+}
+
+.tab {
+  background: transparent;
+  border: none;
+  color: var(--text-mute);
+  padding: 12px 24px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+  margin-bottom: -1px;
+}
+
+.tab:hover { color: var(--text); }
+
+.tab.active {
+  color: var(--orange);
+  border-bottom-color: var(--orange);
+}
+
+/* === KPI GRID === */
+.section-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  color: var(--text-mute);
+  text-transform: uppercase;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.section-label::before {
+  content: '';
+  width: 12px;
+  height: 1px;
+  background: var(--orange);
+}
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  margin-bottom: 32px;
+}
+
+.kpi {
+  background: var(--bg-2);
+  padding: 24px 28px;
+  position: relative;
+  transition: background 0.15s;
+}
+
+.kpi:hover { background: var(--bg-3); }
+
+.kpi-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.25em;
+  color: var(--text-mute);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.kpi-value {
+  font-family: 'Bitter', serif;
+  font-weight: 800;
+  font-size: 32px;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--cream);
+  margin-bottom: 6px;
+}
+
+.kpi-value.profit { color: var(--green); }
+.kpi-value.loss { color: var(--red); }
+.kpi-value.accent { color: var(--orange); }
+
+.kpi-meta {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 0.05em;
+}
+
+.kpi-meta .delta { color: var(--text-mute); }
+.kpi-meta .delta.up { color: var(--green); }
+.kpi-meta .delta.down { color: var(--red); }
+
+/* === FILTERS === */
+.filters {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.filter-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--text-mute);
+  text-transform: uppercase;
+}
+
+.filter {
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  color: var(--text);
+  padding: 8px 14px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  cursor: pointer;
+  outline: none;
+}
+
+.filter:focus { border-color: var(--orange); }
+
+/* === PANELS === */
+.panel-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  margin-bottom: 32px;
+}
+
+.panel {
+  background: var(--bg-2);
+  padding: 24px;
+}
+
+.panel-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.25em;
+  color: var(--text-mute);
+  text-transform: uppercase;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.panel-title .right {
+  font-size: 9px;
+  color: var(--text-dim);
+}
+
+.chart-wrap {
+  position: relative;
+  height: 280px;
+}
+
+.chart-wrap.tall {
+  height: 380px;
+}
+
+/* === TABLES === */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+}
+
+.data-table th {
+  text-align: left;
+  font-weight: 500;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--text-mute);
+  text-transform: uppercase;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.data-table th:hover { color: var(--text); }
+.data-table th.sorted { color: var(--orange); }
+.data-table th.numeric { text-align: right; }
+
+.data-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line-soft);
+  color: var(--text);
+}
+
+.data-table td.numeric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.data-table td.muted { color: var(--text-mute); }
+.data-table td.profit { color: var(--green); }
+.data-table td.loss { color: var(--red); }
+.data-table td.bold { font-weight: 700; color: var(--cream); }
+
+.data-table tr {
+  transition: background 0.1s;
+}
+
+.data-table tbody tr:hover { background: var(--bg-3); }
+
+.data-table tr.clickable { cursor: pointer; }
+
+.scroll-wrap {
+  max-height: 600px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+}
+
+.scroll-wrap::-webkit-scrollbar { width: 8px; }
+.scroll-wrap::-webkit-scrollbar-track { background: var(--bg); }
+.scroll-wrap::-webkit-scrollbar-thumb { background: var(--line); }
+.scroll-wrap::-webkit-scrollbar-thumb:hover { background: var(--orange-dark); }
+
+/* Sticky table headers inside scroll-wrap */
+.scroll-wrap .data-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--bg-2);
+  z-index: 1;
+}
+
+/* === DRILL-DOWN === */
+.drilldown {
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  margin-bottom: 24px;
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.3s ease;
+}
+
+.drilldown.open {
+  max-height: 2000px;
+}
+
+.drilldown-header {
+  padding: 16px 24px;
+  background: var(--bg-3);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+}
+
+.drilldown-title {
+  font-family: 'Bitter', serif;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--cream);
+}
+
+.drilldown-title span {
+  color: var(--orange);
+}
+
+.drilldown-close {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--text-mute);
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.drilldown-close:hover { color: var(--orange); border-color: var(--orange); }
+
+.drilldown-body {
+  padding: 24px;
+}
+
+/* === SEARCH === */
+.search {
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  color: var(--text);
+  padding: 8px 14px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  outline: none;
+  width: 240px;
+}
+
+.search:focus { border-color: var(--orange); }
+
+/* === VIEW PANELS === */
+.view {
+  display: none;
+}
+.view.active {
+  display: block;
+}
+
+/* === FOOTER === */
+.footer {
+  text-align: center;
+  padding: 32px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  border-top: 1px solid var(--line-soft);
+  margin-top: 64px;
+}
+
+.footer span { color: var(--orange); }
+
+/* === RESPONSIVE === */
+@media (max-width: 1100px) {
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .panel-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 700px) {
+  .header { padding: 12px 16px; flex-direction: column; gap: 12px; align-items: flex-start; }
+  .main { padding: 16px; }
+  .tabs { overflow-x: auto; white-space: nowrap; }
+  .kpi-grid { grid-template-columns: 1fr; }
+  .kpi-value { font-size: 28px; }
+  .filters { gap: 8px; }
+  .filter, .search { width: 100%; }
+}
+
+/* === ERROR === */
+.error-box {
+  background: var(--bg-2);
+  border: 1px solid var(--red);
+  border-left: 3px solid var(--red);
+  padding: 24px;
+  margin: 32px 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+}
+.error-box h3 {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: var(--red);
+  margin-bottom: 8px;
+}
+.error-box code {
+  display: block;
+  background: var(--bg);
+  padding: 8px;
+  margin-top: 8px;
+  color: var(--text-mute);
+  word-break: break-all;
+  border: 1px solid var(--line);
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN GATE -->
+<div class="gate" id="gate">
+  <div class="gate-bg"></div>
+  <div class="gate-content">
+    <div class="gate-mark">RODEO<br>HOUS<span>TON</span></div>
+    <div class="gate-sub">Sales Terminal · Restricted</div>
+    <input type="password" id="pw" placeholder="ENTER PASSWORD" autocomplete="off" />
+    <button id="gate-btn">UNLOCK</button>
+    <div class="gate-error" id="gate-error"></div>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div class="loading hidden" id="loading">
+  <div class="loading-bar"></div>
+  <div class="loading-text" id="loading-text">FETCHING SALES DATA</div>
+</div>
+
+<!-- HEADER -->
+<div class="header" id="header" style="display:none;">
+  <div class="brand">
+    <div class="brand-mark">RODEO HOUS<span>TON</span></div>
+    <div class="brand-tag">Sales Terminal</div>
+  </div>
+  <div class="header-right">
+    <span><span class="live-dot"></span><span id="last-sync">SYNCING</span></span>
+    <button class="refresh-btn" id="refresh-btn">↻ REFRESH</button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main" id="main" style="display:none;">
+
+  <div class="tabs">
+    <button class="tab active" data-view="overview">Overview</button>
+    <button class="tab" data-view="seasons">Seasons</button>
+    <button class="tab" data-view="performers">Performers</button>
+    <button class="tab" data-view="marketplaces">Marketplaces</button>
+    <button class="tab" data-view="sales">Sales Log</button>
+  </div>
+
+  <!-- DRILLDOWN PANEL -->
+  <div class="drilldown" id="drilldown">
+    <div class="drilldown-header">
+      <div class="drilldown-title" id="drilldown-title"></div>
+      <button class="drilldown-close" onclick="closeDrilldown()">×</button>
+    </div>
+    <div class="drilldown-body" id="drilldown-body"></div>
+  </div>
+
+  <!-- OVERVIEW VIEW -->
+  <div class="view active" id="view-overview">
+    <div class="filters">
+      <span class="filter-label">Season</span>
+      <select class="filter" id="overview-season"></select>
+    </div>
+
+    <div class="section-label">Season Snapshot</div>
+    <div class="kpi-grid" id="kpi-grid"></div>
+
+    <div class="panel-grid">
+      <div class="panel">
+        <div class="panel-title">
+          <span>Revenue by Performer · Selected Season</span>
+          <span class="right">CLICK BAR TO DRILL DOWN</span>
+        </div>
+        <div class="chart-wrap tall"><canvas id="chart-perf-rev"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="panel-title"><span>Marketplace Mix · Selected Season</span></div>
+        <div class="chart-wrap tall"><canvas id="chart-mkt-mix"></canvas></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title"><span>Daily Sell Velocity · Selected Season</span></div>
+      <div class="chart-wrap"><canvas id="chart-velocity"></canvas></div>
+    </div>
+  </div>
+
+  <!-- SEASONS VIEW -->
+  <div class="view" id="view-seasons">
+    <div class="section-label">All-Time Performance by Season</div>
+    <div class="panel" style="margin-bottom: 32px;">
+      <div class="panel-title"><span>Profit & Loss Across Seasons</span></div>
+      <div class="chart-wrap tall"><canvas id="chart-seasons"></canvas></div>
+    </div>
+    <div class="scroll-wrap">
+      <table class="data-table" id="table-seasons">
+        <thead>
+          <tr>
+            <th data-col="season">Season</th>
+            <th class="numeric" data-col="owned">Tickets Owned</th>
+            <th class="numeric" data-col="sold">Sold</th>
+            <th class="numeric" data-col="sellThrough">Sell-Through</th>
+            <th class="numeric" data-col="revenue">Revenue</th>
+            <th class="numeric" data-col="cost">Cost</th>
+            <th class="numeric" data-col="pl">P/L</th>
+            <th class="numeric" data-col="avgPrice">Avg Price</th>
+            <th class="numeric" data-col="expired">Expired Unsold</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-seasons"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- PERFORMERS VIEW -->
+  <div class="view" id="view-performers">
+    <div class="filters">
+      <input class="search" id="performer-search" placeholder="SEARCH PERFORMER…" />
+      <span class="filter-label">Sort</span>
+      <select class="filter" id="performer-sort">
+        <option value="pl">Profit/Loss</option>
+        <option value="revenue">Revenue</option>
+        <option value="appearances">Appearances</option>
+        <option value="avgPlPerShow">P/L per Show</option>
+        <option value="sold">Tickets Sold</option>
+        <option value="name">Name</option>
+      </select>
+    </div>
+
+    <div class="panel-grid">
+      <div class="panel">
+        <div class="panel-title"><span>Top 10 by Profit</span></div>
+        <div class="chart-wrap tall"><canvas id="chart-top-performers"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="panel-title"><span>Top P/L per Appearance</span></div>
+        <div class="chart-wrap tall"><canvas id="chart-perf-per-show"></canvas></div>
+      </div>
+    </div>
+
+    <div class="scroll-wrap">
+      <table class="data-table" id="table-performers">
+        <thead>
+          <tr>
+            <th data-col="name">Performer</th>
+            <th class="numeric" data-col="appearances">Shows</th>
+            <th class="numeric" data-col="sold">Sold</th>
+            <th class="numeric" data-col="revenue">Revenue</th>
+            <th class="numeric" data-col="pl">P/L</th>
+            <th class="numeric" data-col="avgPrice">Avg Price</th>
+            <th class="numeric" data-col="avgPlPerShow">P/L per Show</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-performers"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- MARKETPLACES VIEW -->
+  <div class="view" id="view-marketplaces">
+    <div class="filters">
+      <span class="filter-label">Season</span>
+      <select class="filter" id="marketplace-season">
+        <option value="all">All Seasons</option>
+      </select>
+    </div>
+
+    <div class="panel-grid">
+      <div class="panel">
+        <div class="panel-title"><span>Revenue Share by Marketplace</span></div>
+        <div class="chart-wrap tall"><canvas id="chart-mkt-revenue"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="panel-title"><span>Average Sell Price by Marketplace</span></div>
+        <div class="chart-wrap tall"><canvas id="chart-mkt-avg"></canvas></div>
+      </div>
+    </div>
+
+    <div class="scroll-wrap">
+      <table class="data-table" id="table-marketplaces">
+        <thead>
+          <tr>
+            <th data-col="name">Marketplace</th>
+            <th class="numeric" data-col="sold">Tickets Sold</th>
+            <th class="numeric" data-col="revenue">Revenue</th>
+            <th class="numeric" data-col="cost">Cost</th>
+            <th class="numeric" data-col="pl">P/L</th>
+            <th class="numeric" data-col="avgPrice">Avg Price</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-marketplaces"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- SALES LOG VIEW -->
+  <div class="view" id="view-sales">
+    <div class="filters">
+      <input class="search" id="sales-search" placeholder="SEARCH PERFORMER, MARKETPLACE, ETC…" />
+      <span class="filter-label">Season</span>
+      <select class="filter" id="sales-season">
+        <option value="all">All</option>
+      </select>
+      <span class="filter-label">Marketplace</span>
+      <select class="filter" id="sales-marketplace">
+        <option value="all">All</option>
+      </select>
+      <span class="filter-label">Result</span>
+      <select class="filter" id="sales-result">
+        <option value="all">All</option>
+        <option value="profit">Profit</option>
+        <option value="loss">Loss</option>
+      </select>
+    </div>
+
+    <div class="section-label" id="sales-count">Loading…</div>
+
+    <div class="scroll-wrap">
+      <table class="data-table" id="table-sales">
+        <thead>
+          <tr>
+            <th data-col="season">Season</th>
+            <th data-col="date">Date</th>
+            <th data-col="performer">Performer</th>
+            <th data-col="section">Sec</th>
+            <th data-col="row">Row</th>
+            <th data-col="seat">Seat</th>
+            <th class="numeric" data-col="cost">Cost</th>
+            <th data-col="sellDate">Sell Date</th>
+            <th data-col="marketplace">Marketplace</th>
+            <th class="numeric" data-col="sellPrice">Sell Price</th>
+            <th class="numeric" data-col="pl">P/L</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-sales"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer" id="footer" style="display:none;">
+  <span>RODEO HOUSTON</span> · SALES TERMINAL · BUILT FOR THE LONG HAUL
+</div>
+
+<script>
+// =============================================================================
+// CONFIGURATION
+// =============================================================================
+// Replace these CSV URLs with the ones from your Google Sheet's "Publish to web" panel.
+// Steps:
+//   1. In Google Sheets: File -> Share -> Publish to web
+//   2. Pick "Sales" sheet, format = "Comma-separated values (.csv)" -> Publish
+//   3. Copy the URL it gives you, paste it below as CSV_SALES
+//   4. Repeat for Tickets, Schedule, Marketplaces
+//
+// IMPORTANT: each sheet must be published individually.
+const CSV_URLS = {
+  sales:        'https://docs.google.com/spreadsheets/d/e/2PACX-1vSfUCHdYdGNhBePxoLxJP2FDMKXa1YNNVVnsreb9msvzaT_LB_tt-uxufG8xlJl-xdn7PX4c9C5w8Uz/pub?gid=369545157&single=true&output=csv',
+  tickets:      'https://docs.google.com/spreadsheets/d/e/2PACX-1vSfUCHdYdGNhBePxoLxJP2FDMKXa1YNNVVnsreb9msvzaT_LB_tt-uxufG8xlJl-xdn7PX4c9C5w8Uz/pub?gid=832176610&single=true&output=csv',
+  schedule:     'https://docs.google.com/spreadsheets/d/e/2PACX-1vSfUCHdYdGNhBePxoLxJP2FDMKXa1YNNVVnsreb9msvzaT_LB_tt-uxufG8xlJl-xdn7PX4c9C5w8Uz/pub?gid=1605992690&single=true&output=csv',
+  marketplaces: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSfUCHdYdGNhBePxoLxJP2FDMKXa1YNNVVnsreb9msvzaT_LB_tt-uxufG8xlJl-xdn7PX4c9C5w8Uz/pub?gid=1683579619&single=true&output=csv',
+};
+
+// SHA-256 of "rodeo2026" (lowercase). Replace with your own hash via:
+//   crypto.subtle.digest('SHA-256', new TextEncoder().encode('your-password'))
+//   then convert to hex.  Or open the browser console on this page and run:
+//      hashPassword('your-password').then(console.log)
+const PASSWORD_HASH = 'be46db70f624d123856f10d01c385cd30a823d7177af4d3995f57e27afb27236';
+
+// =============================================================================
+// STATE
+// =============================================================================
+const state = {
+  sales: [],
+  tickets: [],
+  schedule: [],
+  marketplaces: [],
+  // derived
+  seasons: [],          // sorted desc
+  performers: [],       // unique, case-insensitive
+  scheduleMap: new Map(), // key: "season|performance" -> {date, performer}
+  performerMap: new Map(), // key: "season|performance" -> canonical performer
+  ticketMap: new Map(), // key: "season|section|row|seat" -> cost
+  performersBySeason: new Map(), // season -> set of canonical performer names
+  charts: {},
+  sortState: {},
+  filters: { sales: { search: '', season: 'all', marketplace: 'all', result: 'all' } },
+};
+
+// =============================================================================
+// CRYPTO HELPERS
+// =============================================================================
+async function hashPassword(pw) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pw));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+window.hashPassword = hashPassword; // expose for password setup
+
+async function checkPassword() {
+  const pw = document.getElementById('pw').value;
+  const errorEl = document.getElementById('gate-error');
+  if (!pw) { errorEl.textContent = 'Enter a password'; return; }
+  errorEl.textContent = '';
+  const hash = await hashPassword(pw);
+  if (hash === PASSWORD_HASH) {
+    sessionStorage.setItem('rh_unlocked', '1');
+    enterApp();
+  } else {
+    errorEl.textContent = 'Access denied';
+    document.getElementById('pw').value = '';
+  }
+}
+
+// =============================================================================
+// CSV PARSING (handles quoted fields with commas/newlines)
+// =============================================================================
+function parseCSV(text) {
+  const rows = [];
+  let cur = [];
+  let field = '';
+  let inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQuotes) {
+      if (c === '"') {
+        if (text[i+1] === '"') { field += '"'; i++; }
+        else inQuotes = false;
+      } else field += c;
+    } else {
+      if (c === '"') inQuotes = true;
+      else if (c === ',') { cur.push(field); field = ''; }
+      else if (c === '\n') { cur.push(field); rows.push(cur); cur = []; field = ''; }
+      else if (c === '\r') { /* skip */ }
+      else field += c;
+    }
+  }
+  if (field.length > 0 || cur.length > 0) { cur.push(field); rows.push(cur); }
+  if (rows.length === 0) return { headers: [], rows: [] };
+  const headers = rows[0].map(h => h.trim());
+  const data = rows.slice(1).map(r => {
+    const obj = {};
+    headers.forEach((h, idx) => obj[h] = (r[idx] || '').trim());
+    return obj;
+  });
+  return { headers, rows: data };
+}
+
+function parseMoney(v) {
+  if (v == null) return null;
+  const s = String(v).trim();
+  if (s === '' || s === '-') return null;
+  const neg = s.includes('(');
+  const cleaned = s.replace(/[^\d.\-]/g, '');
+  if (cleaned === '' || cleaned === '-' || cleaned === '.') return null;
+  const n = parseFloat(cleaned);
+  if (isNaN(n)) return null;
+  return neg ? -n : n;
+}
+
+function parseInt0(v) {
+  if (v == null || v === '') return null;
+  const n = parseInt(String(v).replace(/,/g, ''), 10);
+  return isNaN(n) ? null : n;
+}
+
+function parseDate(v) {
+  if (v == null || v === '') return null;
+  const s = String(v).trim();
+  if (!s) return null;
+  // m/d/yy or m/d/yyyy
+  const mdy = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+  if (mdy) {
+    let y = parseInt(mdy[3], 10);
+    if (y < 100) y += 2000;
+    return new Date(y, parseInt(mdy[1], 10) - 1, parseInt(mdy[2], 10));
+  }
+  // yyyy-mm-dd
+  const ymd = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (ymd) return new Date(parseInt(ymd[1],10), parseInt(ymd[2],10)-1, parseInt(ymd[3],10));
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+const fmtMoney = n => n == null ? '—' : (n < 0 ? `($${Math.abs(n).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})})` : `$${n.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`);
+const fmtMoney0 = n => n == null ? '—' : (n < 0 ? `($${Math.abs(n).toLocaleString('en-US', {maximumFractionDigits: 0})})` : `$${n.toLocaleString('en-US', {maximumFractionDigits: 0})}`);
+const fmtNum = n => n == null ? '—' : n.toLocaleString('en-US');
+const fmtPct = n => n == null ? '—' : `${(n * 100).toFixed(1)}%`;
+const fmtDate = d => d == null ? '—' : `${d.getMonth()+1}/${d.getDate()}/${d.getFullYear()}`;
+
+// =============================================================================
+// DATA LOAD
+// =============================================================================
+async function fetchCSV(url) {
+  if (!url || url.startsWith('PASTE_')) {
+    throw new Error('CSV URL not configured. Edit this HTML file and paste in the URLs from Google Sheets > File > Share > Publish to web.');
+  }
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`HTTP ${response.status} fetching ${url}`);
+  const text = await response.text();
+  return parseCSV(text);
+}
+
+async function loadAll() {
+  setLoadingText('FETCHING SALES DATA');
+  const sales = await fetchCSV(CSV_URLS.sales);
+  setLoadingText('FETCHING TICKETS');
+  const tickets = await fetchCSV(CSV_URLS.tickets);
+  setLoadingText('FETCHING SCHEDULE');
+  const schedule = await fetchCSV(CSV_URLS.schedule);
+  setLoadingText('FETCHING MARKETPLACES');
+  const marketplaces = await fetchCSV(CSV_URLS.marketplaces);
+
+  setLoadingText('PROCESSING DATA');
+
+  // Build lookups
+  state.scheduleMap.clear();
+  state.performerMap.clear();
+  state.performersBySeason = new Map();
+
+  // Canonicalize performer casing (most-frequent casing wins, like the spreadsheet)
+  const perfCasings = new Map();
+  for (const r of schedule.rows) {
+    const p = (r.Performer || '').trim();
+    if (!p) continue;
+    const k = p.toLowerCase();
+    if (!perfCasings.has(k)) perfCasings.set(k, new Map());
+    const cm = perfCasings.get(k);
+    cm.set(p, (cm.get(p) || 0) + 1);
+  }
+  const canonByLower = new Map();
+  for (const [low, cm] of perfCasings) {
+    let best = '', bestN = -1;
+    for (const [casing, n] of cm) if (n > bestN) { best = casing; bestN = n; }
+    canonByLower.set(low, best);
+  }
+
+  for (const r of schedule.rows) {
+    const season = parseInt0(r.Season);
+    const performance = parseInt0(r.Performance);
+    const date = parseDate(r.Date);
+    const perfRaw = (r.Performer || '').trim();
+    const performer = canonByLower.get(perfRaw.toLowerCase()) || perfRaw;
+    if (season != null && performance != null) {
+      const key = `${season}|${performance}`;
+      state.scheduleMap.set(key, { date, performer });
+      state.performerMap.set(key, performer);
+      if (!state.performersBySeason.has(season)) state.performersBySeason.set(season, new Set());
+      state.performersBySeason.get(season).add(performer);
+    }
+  }
+
+  state.ticketMap.clear();
+  for (const r of tickets.rows) {
+    const season = parseInt0(r.Season);
+    const section = (r.Section || '').trim();
+    const row = (r.Row || '').trim();
+    const seat = (r.Seat || '').trim();
+    const cost = parseMoney(r.Cost);
+    if (season != null && section && row && seat) {
+      state.ticketMap.set(`${season}|${section}|${row}|${seat}`, cost);
+    }
+  }
+
+  // Process sales
+  state.sales = [];
+  for (const r of sales.rows) {
+    const season = parseInt0(r.Season);
+    if (season == null) continue;
+    const performance = parseInt0(r.Performance);
+    const section = (r.Section || '').trim();
+    const row = (r.Row || '').trim();
+    const seat = (r.Seat || '').trim();
+    const sellPrice = parseMoney(r['Sell Price']);
+    if (sellPrice == null) continue; // only include actual sales
+
+    const schedKey = `${season}|${performance}`;
+    const sched = state.scheduleMap.get(schedKey) || {};
+    const tixKey = `${season}|${section}|${row}|${seat}`;
+    const cost = state.ticketMap.get(tixKey) ?? parseMoney(r.Cost) ?? 0;
+
+    state.sales.push({
+      season,
+      performance,
+      date: sched.date || null,
+      performer: sched.performer || (r.Performer || '').trim(),
+      section, row, seat,
+      cost,
+      sellDate: parseDate(r['Sell Date']),
+      marketplace: (r.Marketplace || r.Vendor || '').trim(),
+      sellPrice,
+      pl: sellPrice - cost,
+    });
+  }
+
+  // Marketplace list (from Marketplaces sheet, in order)
+  state.marketplaces = marketplaces.rows
+    .map(r => (r.MarketPlaces || r.Marketplaces || r.Marketplace || '').trim())
+    .filter(Boolean);
+
+  // Tickets / inventory totals per season
+  state.inventory = {};
+  for (const r of tickets.rows) {
+    const season = parseInt0(r.Season);
+    const cost = parseMoney(r.Cost);
+    if (season == null || cost == null) continue;
+    if (!state.inventory[season]) state.inventory[season] = { seats: 0, cost: 0 };
+    state.inventory[season].seats += 1;
+    state.inventory[season].cost += cost;
+  }
+
+  // Schedule -> performances per season
+  state.performancesPerSeason = {};
+  for (const r of schedule.rows) {
+    const season = parseInt0(r.Season);
+    if (season == null) continue;
+    state.performancesPerSeason[season] = (state.performancesPerSeason[season] || 0) + 1;
+  }
+
+  // Distinct seasons
+  state.seasons = [...new Set([
+    ...Object.keys(state.inventory).map(Number),
+    ...state.sales.map(s => s.season),
+  ])].sort((a, b) => b - a);
+
+  // Distinct performers
+  state.performers = [...new Set(state.sales.map(s => s.performer).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b));
+
+  state.lastSync = new Date();
+}
+
+// =============================================================================
+// AGGREGATIONS
+// =============================================================================
+function isExpired(d) {
+  if (!d) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return d < today;
+}
+
+function seasonStats(season) {
+  const inv = state.inventory[season] || { seats: 0, cost: 0 };
+  const perfCount = state.performancesPerSeason[season] || 0;
+  const owned = inv.seats * perfCount;
+  const invCost = inv.cost * perfCount;
+  const sales = state.sales.filter(s => s.season === season);
+  const sold = sales.length;
+  const revenue = sales.reduce((a, s) => a + s.sellPrice, 0);
+  const costSold = sales.reduce((a, s) => a + s.cost, 0);
+
+  // Expired unsold: sales rows in original CSV that have no Sell Price but date < today;
+  // since we filtered to actual sales, we need to derive expired from inventory + schedule.
+  // For each performance whose date is in the past, count seats not sold for that show.
+  let expiredUnsold = 0;
+  let wastedCost = 0;
+  const showsBySeason = {};
+  for (const r of state.scheduleMap.entries()) {
+    const [key, val] = r;
+    const [s] = key.split('|').map(Number);
+    if (s !== season) continue;
+    if (!val.date || !isExpired(val.date)) continue;
+    showsBySeason[key] = true;
+  }
+  // count sold per performance
+  const soldByPerf = {};
+  for (const sale of sales) {
+    const k = `${sale.season}|${sale.performance}`;
+    soldByPerf[k] = (soldByPerf[k] || 0) + 1;
+  }
+  // for each expired show, expired = inv.seats - soldByPerf
+  for (const k of Object.keys(showsBySeason)) {
+    const soldHere = soldByPerf[k] || 0;
+    const exp = Math.max(0, inv.seats - soldHere);
+    expiredUnsold += exp;
+    wastedCost += exp * (inv.seats > 0 ? inv.cost / inv.seats : 0);
+  }
+
+  const pl = revenue - costSold - wastedCost;
+  return {
+    season,
+    owned,
+    sold,
+    sellThrough: owned > 0 ? sold / owned : 0,
+    revenue,
+    cost: invCost,
+    pl,
+    avgPrice: sold > 0 ? revenue / sold : 0,
+    expiredUnsold,
+    wastedCost,
+  };
+}
+
+function allSeasonStats() {
+  return state.seasons.map(seasonStats);
+}
+
+function performerStats() {
+  const map = new Map();
+  // appearances from schedule
+  const appearances = new Map();
+  for (const v of state.performerMap.values()) {
+    appearances.set(v, (appearances.get(v) || 0) + 1);
+  }
+  for (const sale of state.sales) {
+    if (!map.has(sale.performer)) {
+      map.set(sale.performer, { name: sale.performer, appearances: 0, sold: 0, revenue: 0, cost: 0 });
+    }
+    const r = map.get(sale.performer);
+    r.sold += 1;
+    r.revenue += sale.sellPrice;
+    r.cost += sale.cost;
+  }
+  const arr = [];
+  for (const [name, r] of map) {
+    r.appearances = appearances.get(name) || 0;
+    r.pl = r.revenue - r.cost;
+    r.avgPrice = r.sold > 0 ? r.revenue / r.sold : 0;
+    r.avgPlPerShow = r.appearances > 0 ? r.pl / r.appearances : 0;
+    arr.push(r);
+  }
+  // include performers from schedule who never sold
+  for (const [name, count] of appearances) {
+    if (!map.has(name)) {
+      arr.push({ name, appearances: count, sold: 0, revenue: 0, cost: 0, pl: 0, avgPrice: 0, avgPlPerShow: 0 });
+    }
+  }
+  return arr;
+}
+
+function marketplaceStats(season) {
+  const map = new Map();
+  for (const sale of state.sales) {
+    if (season !== 'all' && sale.season !== season) continue;
+    const m = sale.marketplace || '(none)';
+    if (!map.has(m)) map.set(m, { name: m, sold: 0, revenue: 0, cost: 0 });
+    const r = map.get(m);
+    r.sold += 1;
+    r.revenue += sale.sellPrice;
+    r.cost += sale.cost;
+  }
+  const arr = [];
+  for (const [, r] of map) {
+    r.pl = r.revenue - r.cost;
+    r.avgPrice = r.sold > 0 ? r.revenue / r.sold : 0;
+    arr.push(r);
+  }
+  arr.sort((a, b) => b.revenue - a.revenue);
+  return arr;
+}
+
+// =============================================================================
+// CHART HELPERS
+// =============================================================================
+const CHART_COLORS = {
+  text: '#9C9183',
+  textMute: '#5C5447',
+  line: '#3A352F',
+  orange: '#DA6022',
+  orangeBright: '#FF7733',
+  green: '#5FAE5F',
+  red: '#D85050',
+  gold: '#C9A961',
+  cream: '#F5E6D3',
+};
+
+const PALETTE = ['#DA6022', '#C9A961', '#5FAE5F', '#A2547D', '#5A8FB0', '#D85050', '#9C7B5C', '#7A8A4D', '#B36A8C', '#4D8B86'];
+
+function defaultChartOpts(extra = {}) {
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { labels: { color: CHART_COLORS.text, font: { family: 'JetBrains Mono', size: 10 } } },
+      tooltip: {
+        backgroundColor: '#1A1814',
+        titleColor: CHART_COLORS.cream,
+        bodyColor: CHART_COLORS.text,
+        borderColor: CHART_COLORS.line,
+        borderWidth: 1,
+        titleFont: { family: 'Inter', weight: 600, size: 12 },
+        bodyFont: { family: 'JetBrains Mono', size: 11 },
+        padding: 12,
+        boxPadding: 4,
+      },
+    },
+    scales: {
+      x: {
+        grid: { color: CHART_COLORS.line, drawBorder: false },
+        ticks: { color: CHART_COLORS.text, font: { family: 'JetBrains Mono', size: 10 } },
+      },
+      y: {
+        grid: { color: CHART_COLORS.line, drawBorder: false },
+        ticks: { color: CHART_COLORS.text, font: { family: 'JetBrains Mono', size: 10 } },
+      },
+    },
+    ...extra,
+  };
+}
+
+function destroyChart(name) {
+  if (state.charts[name]) {
+    state.charts[name].destroy();
+    delete state.charts[name];
+  }
+}
+
+// =============================================================================
+// VIEWS
+// =============================================================================
+function setLoadingText(t) { document.getElementById('loading-text').textContent = t; }
+
+function enterApp() {
+  document.getElementById('gate').classList.add('hidden');
+  document.getElementById('loading').classList.remove('hidden');
+  document.getElementById('header').style.display = 'flex';
+  document.getElementById('main').style.display = 'block';
+  document.getElementById('footer').style.display = 'block';
+  refresh();
+}
+
+async function refresh() {
+  document.getElementById('loading').classList.remove('hidden');
+  try {
+    await loadAll();
+    populateFilters();
+    renderActiveView();
+    updateLastSync();
+    document.getElementById('loading').classList.add('hidden');
+  } catch (err) {
+    document.getElementById('loading').classList.add('hidden');
+    document.getElementById('main').innerHTML = `<div class="error-box">
+      <h3>Could not load data</h3>
+      <div>${err.message}</div>
+      <code>Check the CSV URLs in this HTML file. They should look like:
+https://docs.google.com/spreadsheets/d/e/.../pub?output=csv</code>
+    </div>`;
+  }
+}
+
+function updateLastSync() {
+  const t = state.lastSync;
+  if (!t) return;
+  const hh = String(t.getHours()).padStart(2, '0');
+  const mm = String(t.getMinutes()).padStart(2, '0');
+  document.getElementById('last-sync').textContent = `LIVE · ${hh}:${mm}`;
+}
+
+function populateFilters() {
+  // Overview season
+  const ovs = document.getElementById('overview-season');
+  ovs.innerHTML = state.seasons.map(s => `<option value="${s}">${s}</option>`).join('');
+  ovs.value = state.seasons[0] || '';
+
+  // Marketplaces season
+  const mks = document.getElementById('marketplace-season');
+  mks.innerHTML = '<option value="all">All Seasons</option>' +
+    state.seasons.map(s => `<option value="${s}">${s}</option>`).join('');
+
+  // Sales season
+  const sss = document.getElementById('sales-season');
+  sss.innerHTML = '<option value="all">All</option>' +
+    state.seasons.map(s => `<option value="${s}">${s}</option>`).join('');
+
+  // Sales marketplace
+  const smkts = [...new Set(state.sales.map(s => s.marketplace).filter(Boolean))].sort();
+  const ssm = document.getElementById('sales-marketplace');
+  ssm.innerHTML = '<option value="all">All</option>' +
+    smkts.map(m => `<option value="${m}">${m}</option>`).join('');
+}
+
+function activeView() {
+  return document.querySelector('.tab.active').dataset.view;
+}
+
+function renderActiveView() {
+  const v = activeView();
+  if (v === 'overview') renderOverview();
+  else if (v === 'seasons') renderSeasons();
+  else if (v === 'performers') renderPerformers();
+  else if (v === 'marketplaces') renderMarketplaces();
+  else if (v === 'sales') renderSales();
+}
+
+// === OVERVIEW ===
+function renderOverview() {
+  const season = parseInt(document.getElementById('overview-season').value, 10);
+  if (isNaN(season)) return;
+
+  const stats = seasonStats(season);
+  // KPIs
+  const kpiHTML = [
+    { label: 'Tickets Owned', value: fmtNum(stats.owned), meta: `${state.inventory[season]?.seats || 0} seats × ${state.performancesPerSeason[season] || 0} shows` },
+    { label: 'Inventory Cost', value: fmtMoney0(stats.cost), meta: 'Total $ paid' },
+    { label: 'Tickets Sold', value: fmtNum(stats.sold), meta: `Sell-through ${fmtPct(stats.sellThrough)}` },
+    { label: 'Revenue', value: fmtMoney0(stats.revenue), klass: 'accent', meta: `Avg ${fmtMoney(stats.avgPrice)}` },
+    { label: 'Profit / Loss', value: fmtMoney0(stats.pl), klass: stats.pl >= 0 ? 'profit' : 'loss', meta: stats.pl >= 0 ? 'Net positive' : 'Net loss' },
+    { label: 'Wasted Cost', value: fmtMoney0(stats.wastedCost), klass: 'loss', meta: `${stats.expiredUnsold} expired tickets` },
+    { label: 'Unique Performers', value: fmtNum(state.performersBySeason.get(season)?.size || 0), meta: 'On the bill' },
+    { label: 'Marketplaces Used', value: fmtNum(new Set(state.sales.filter(s => s.season === season).map(s => s.marketplace).filter(Boolean)).size), meta: 'This season' },
+  ];
+  document.getElementById('kpi-grid').innerHTML = kpiHTML.map(k => `
+    <div class="kpi">
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value ${k.klass||''}">${k.value}</div>
+      <div class="kpi-meta">${k.meta}</div>
+    </div>
+  `).join('');
+
+  // Revenue by performer
+  const seasonSales = state.sales.filter(s => s.season === season);
+  const byPerformer = new Map();
+  for (const sale of seasonSales) {
+    if (!byPerformer.has(sale.performer)) byPerformer.set(sale.performer, { revenue: 0, pl: 0, sold: 0 });
+    const r = byPerformer.get(sale.performer);
+    r.revenue += sale.sellPrice;
+    r.pl += (sale.sellPrice - sale.cost);
+    r.sold += 1;
+  }
+  const perfArr = [...byPerformer.entries()].map(([name, r]) => ({ name, ...r })).sort((a, b) => b.revenue - a.revenue);
+
+  destroyChart('perfRev');
+  state.charts.perfRev = new Chart(document.getElementById('chart-perf-rev'), {
+    type: 'bar',
+    data: {
+      labels: perfArr.map(p => p.name),
+      datasets: [{
+        label: 'Revenue',
+        data: perfArr.map(p => p.revenue),
+        backgroundColor: perfArr.map(p => p.pl >= 0 ? CHART_COLORS.orange : CHART_COLORS.red),
+        borderRadius: 0,
+      }],
+    },
+    options: defaultChartOpts({
+      indexAxis: 'y',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1A1814',
+          titleColor: CHART_COLORS.cream,
+          bodyColor: CHART_COLORS.text,
+          borderColor: CHART_COLORS.line,
+          borderWidth: 1,
+          callbacks: {
+            label: (ctx) => {
+              const p = perfArr[ctx.dataIndex];
+              return [`Revenue: ${fmtMoney(p.revenue)}`, `P/L: ${fmtMoney(p.pl)}`, `Sold: ${p.sold}`];
+            },
+          },
+        },
+      },
+      onClick: (evt, activeEls) => {
+        if (activeEls.length > 0) {
+          const idx = activeEls[0].index;
+          openPerformerDrilldown(perfArr[idx].name, season);
+        }
+      },
+      onHover: (evt, els) => evt.native.target.style.cursor = els.length ? 'pointer' : 'default',
+    }),
+  });
+
+  // Marketplace mix donut
+  const byMkt = new Map();
+  for (const sale of seasonSales) {
+    const m = sale.marketplace || '(none)';
+    byMkt.set(m, (byMkt.get(m) || 0) + sale.sellPrice);
+  }
+  const mktArr = [...byMkt.entries()].map(([k,v]) => [k, v]).sort((a,b) => b[1] - a[1]);
+  destroyChart('mktMix');
+  state.charts.mktMix = new Chart(document.getElementById('chart-mkt-mix'), {
+    type: 'doughnut',
+    data: {
+      labels: mktArr.map(m => m[0]),
+      datasets: [{
+        data: mktArr.map(m => m[1]),
+        backgroundColor: PALETTE,
+        borderColor: '#1A1814',
+        borderWidth: 2,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '60%',
+      plugins: {
+        legend: {
+          position: 'right',
+          labels: { color: CHART_COLORS.text, font: { family: 'JetBrains Mono', size: 10 }, padding: 8, boxWidth: 12 },
+        },
+        tooltip: {
+          backgroundColor: '#1A1814',
+          titleColor: CHART_COLORS.cream,
+          bodyColor: CHART_COLORS.text,
+          borderColor: CHART_COLORS.line,
+          borderWidth: 1,
+          callbacks: {
+            label: (ctx) => `${ctx.label}: ${fmtMoney(ctx.parsed)}`,
+          },
+        },
+      },
+      onClick: (evt, els) => {
+        if (els.length > 0) openMarketplaceDrilldown(mktArr[els[0].index][0], season);
+      },
+      onHover: (evt, els) => evt.native.target.style.cursor = els.length ? 'pointer' : 'default',
+    },
+  });
+
+  // Daily velocity
+  const sortedSales = seasonSales.filter(s => s.sellDate).sort((a, b) => a.sellDate - b.sellDate);
+  const byDay = new Map();
+  let cumPL = 0;
+  const cumPLArr = [];
+  for (const sale of sortedSales) {
+    const k = sale.sellDate.toISOString().slice(0, 10);
+    if (!byDay.has(k)) byDay.set(k, 0);
+    byDay.set(k, byDay.get(k) + 1);
+  }
+  // Sort by date and accumulate P/L
+  let runningPL = 0;
+  const days = [...byDay.keys()].sort();
+  const cumPLByDay = days.map(k => {
+    runningPL += sortedSales.filter(s => s.sellDate.toISOString().slice(0,10) === k).reduce((a,s)=>a+(s.sellPrice-s.cost),0);
+    return runningPL;
+  });
+
+  destroyChart('velocity');
+  state.charts.velocity = new Chart(document.getElementById('chart-velocity'), {
+    type: 'bar',
+    data: {
+      labels: days,
+      datasets: [
+        {
+          type: 'bar',
+          label: 'Tickets Sold',
+          data: days.map(k => byDay.get(k)),
+          backgroundColor: CHART_COLORS.orange,
+          borderRadius: 0,
+          yAxisID: 'y',
+        },
+        {
+          type: 'line',
+          label: 'Cumulative P/L',
+          data: cumPLByDay,
+          borderColor: CHART_COLORS.gold,
+          backgroundColor: 'transparent',
+          borderWidth: 2,
+          pointRadius: 0,
+          tension: 0.2,
+          yAxisID: 'y2',
+        },
+      ],
+    },
+    options: defaultChartOpts({
+      scales: {
+        x: { grid: { color: CHART_COLORS.line }, ticks: { color: CHART_COLORS.text, font: { family: 'JetBrains Mono', size: 9 }, maxTicksLimit: 12 } },
+        y: { grid: { color: CHART_COLORS.line }, ticks: { color: CHART_COLORS.text, font: { family: 'JetBrains Mono', size: 10 } }, position: 'left', title: { display: true, text: 'Tickets', color: CHART_COLORS.text, font: { family: 'JetBrains Mono', size: 10 } } },
+        y2: { position: 'right', grid: { drawOnChartArea: false }, ticks: { color: CHART_COLORS.gold, font: { family: 'JetBrains Mono', size: 10 }, callback: v => '$'+ (v/1000).toFixed(0) + 'k' }, title: { display: true, text: 'Cumulative P/L', color: CHART_COLORS.gold, font: { family: 'JetBrains Mono', size: 10 } } },
+      },
+    }),
+  });
+}
+
+// === SEASONS ===
+function renderSeasons() {
+  const stats = allSeasonStats().sort((a, b) => a.season - b.season);
+  destroyChart('seasons');
+  state.charts.seasons = new Chart(document.getElementById('chart-seasons'), {
+    type: 'bar',
+    data: {
+      labels: stats.map(s => s.season),
+      datasets: [
+        { label: 'Revenue', data: stats.map(s => s.revenue), backgroundColor: CHART_COLORS.orange, borderRadius: 0, order: 2 },
+        { label: 'Profit/Loss', data: stats.map(s => s.pl), backgroundColor: stats.map(s => s.pl >= 0 ? CHART_COLORS.green : CHART_COLORS.red), borderRadius: 0, order: 1 },
+      ],
+    },
+    options: defaultChartOpts({
+      plugins: {
+        legend: { labels: { color: CHART_COLORS.text, font: { family: 'JetBrains Mono', size: 10 } } },
+        tooltip: {
+          backgroundColor: '#1A1814',
+          titleColor: CHART_COLORS.cream,
+          bodyColor: CHART_COLORS.text,
+          borderColor: CHART_COLORS.line,
+          borderWidth: 1,
+          callbacks: { label: (ctx) => `${ctx.dataset.label}: ${fmtMoney(ctx.parsed.y)}` },
+        },
+      },
+      onClick: (evt, els) => {
+        if (els.length > 0) openSeasonDrilldown(stats[els[0].index].season);
+      },
+      onHover: (evt, els) => evt.native.target.style.cursor = els.length ? 'pointer' : 'default',
+    }),
+  });
+
+  state.tableData = { seasons: stats.slice().reverse() };
+  renderSeasonsTable();
+}
+
+function renderSeasonsTable() {
+  const sort = state.sortState.seasons || { col: 'season', dir: 'desc' };
+  const data = state.tableData.seasons.slice().sort((a, b) => {
+    const av = a[sort.col], bv = b[sort.col];
+    if (typeof av === 'string') return sort.dir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
+    return sort.dir === 'asc' ? av - bv : bv - av;
+  });
+  const tbody = document.getElementById('tbody-seasons');
+  tbody.innerHTML = data.map(s => `
+    <tr class="clickable" onclick="openSeasonDrilldown(${s.season})">
+      <td class="bold">${s.season}</td>
+      <td class="numeric">${fmtNum(s.owned)}</td>
+      <td class="numeric">${fmtNum(s.sold)}</td>
+      <td class="numeric muted">${fmtPct(s.sellThrough)}</td>
+      <td class="numeric">${fmtMoney0(s.revenue)}</td>
+      <td class="numeric muted">${fmtMoney0(s.cost)}</td>
+      <td class="numeric ${s.pl >= 0 ? 'profit' : 'loss'}">${fmtMoney0(s.pl)}</td>
+      <td class="numeric muted">${fmtMoney(s.avgPrice)}</td>
+      <td class="numeric muted">${fmtNum(s.expiredUnsold)}</td>
+    </tr>
+  `).join('');
+
+  // header sort indicators
+  document.querySelectorAll('#table-seasons th').forEach(th => {
+    th.classList.toggle('sorted', th.dataset.col === sort.col);
+    if (th.dataset.col === sort.col) th.textContent = th.textContent.replace(/[ ↑↓]+$/, '') + (sort.dir === 'asc' ? ' ↑' : ' ↓');
+    else th.textContent = th.textContent.replace(/[ ↑↓]+$/, '');
+  });
+}
+
+// === PERFORMERS ===
+function renderPerformers() {
+  let perfs = performerStats();
+  const search = document.getElementById('performer-search').value.trim().toLowerCase();
+  if (search) perfs = perfs.filter(p => p.name.toLowerCase().includes(search));
+  const sortKey = document.getElementById('performer-sort').value;
+  perfs.sort((a, b) => {
+    if (sortKey === 'name') return a.name.localeCompare(b.name);
+    return b[sortKey] - a[sortKey];
+  });
+
+  // Top 10 by P/L (regardless of current sort)
+  const top10 = performerStats().slice().sort((a, b) => b.pl - a.pl).slice(0, 10);
+  destroyChart('topPerformers');
+  state.charts.topPerformers = new Chart(document.getElementById('chart-top-performers'), {
+    type: 'bar',
+    data: {
+      labels: top10.map(p => p.name),
+      datasets: [{
+        label: 'Profit/Loss',
+        data: top10.map(p => p.pl),
+        backgroundColor: top10.map(p => p.pl >= 0 ? CHART_COLORS.green : CHART_COLORS.red),
+        borderRadius: 0,
+      }],
+    },
+    options: defaultChartOpts({
+      indexAxis: 'y',
+      plugins: { legend: { display: false }, tooltip: { backgroundColor:'#1A1814', titleColor: CHART_COLORS.cream, bodyColor: CHART_COLORS.text, borderColor: CHART_COLORS.line, borderWidth: 1, callbacks: { label: (ctx) => `${fmtMoney(ctx.parsed.x)}` } } },
+      onClick: (evt, els) => { if (els.length) openPerformerDrilldown(top10[els[0].index].name, null); },
+      onHover: (evt, els) => evt.native.target.style.cursor = els.length ? 'pointer' : 'default',
+    }),
+  });
+
+  const topPerShow = performerStats().filter(p => p.appearances > 0).slice().sort((a, b) => b.avgPlPerShow - a.avgPlPerShow).slice(0, 10);
+  destroyChart('perfPerShow');
+  state.charts.perfPerShow = new Chart(document.getElementById('chart-perf-per-show'), {
+    type: 'bar',
+    data: {
+      labels: topPerShow.map(p => p.name),
+      datasets: [{
+        label: 'P/L per Appearance',
+        data: topPerShow.map(p => p.avgPlPerShow),
+        backgroundColor: CHART_COLORS.gold,
+        borderRadius: 0,
+      }],
+    },
+    options: defaultChartOpts({
+      indexAxis: 'y',
+      plugins: { legend: { display: false }, tooltip: { backgroundColor:'#1A1814', titleColor: CHART_COLORS.cream, bodyColor: CHART_COLORS.text, borderColor: CHART_COLORS.line, borderWidth: 1, callbacks: { label: (ctx) => { const p = topPerShow[ctx.dataIndex]; return [`${fmtMoney(p.avgPlPerShow)} per show`, `Total P/L: ${fmtMoney(p.pl)}`, `${p.appearances} appearance${p.appearances === 1 ? '' : 's'}`]; } } } },
+      onClick: (evt, els) => { if (els.length) openPerformerDrilldown(topPerShow[els[0].index].name, null); },
+      onHover: (evt, els) => evt.native.target.style.cursor = els.length ? 'pointer' : 'default',
+    }),
+  });
+
+  document.getElementById('tbody-performers').innerHTML = perfs.map(p => `
+    <tr class="clickable" onclick="openPerformerDrilldown('${p.name.replace(/'/g, "\\'")}', null)">
+      <td class="bold">${p.name}</td>
+      <td class="numeric muted">${fmtNum(p.appearances)}</td>
+      <td class="numeric">${fmtNum(p.sold)}</td>
+      <td class="numeric">${fmtMoney0(p.revenue)}</td>
+      <td class="numeric ${p.pl >= 0 ? 'profit' : 'loss'}">${fmtMoney0(p.pl)}</td>
+      <td class="numeric muted">${fmtMoney(p.avgPrice)}</td>
+      <td class="numeric ${p.avgPlPerShow >= 0 ? 'profit' : 'loss'}">${fmtMoney(p.avgPlPerShow)}</td>
+    </tr>
+  `).join('');
+}
+
+// === MARKETPLACES ===
+function renderMarketplaces() {
+  const seasonSel = document.getElementById('marketplace-season').value;
+  const season = seasonSel === 'all' ? 'all' : parseInt(seasonSel, 10);
+  const data = marketplaceStats(season);
+
+  destroyChart('mktRevenue');
+  state.charts.mktRevenue = new Chart(document.getElementById('chart-mkt-revenue'), {
+    type: 'bar',
+    data: {
+      labels: data.map(d => d.name),
+      datasets: [{ label: 'Revenue', data: data.map(d => d.revenue), backgroundColor: PALETTE, borderRadius: 0 }],
+    },
+    options: defaultChartOpts({
+      indexAxis: 'y',
+      plugins: { legend: { display: false }, tooltip: { backgroundColor:'#1A1814', titleColor: CHART_COLORS.cream, bodyColor: CHART_COLORS.text, borderColor: CHART_COLORS.line, borderWidth: 1, callbacks: { label: (ctx) => { const m = data[ctx.dataIndex]; return [`Revenue: ${fmtMoney(m.revenue)}`, `P/L: ${fmtMoney(m.pl)}`, `Sold: ${m.sold}`]; } } } },
+      onClick: (evt, els) => { if (els.length) openMarketplaceDrilldown(data[els[0].index].name, season === 'all' ? null : season); },
+      onHover: (evt, els) => evt.native.target.style.cursor = els.length ? 'pointer' : 'default',
+    }),
+  });
+
+  destroyChart('mktAvg');
+  const sortedByAvg = data.slice().sort((a, b) => b.avgPrice - a.avgPrice);
+  state.charts.mktAvg = new Chart(document.getElementById('chart-mkt-avg'), {
+    type: 'bar',
+    data: {
+      labels: sortedByAvg.map(d => d.name),
+      datasets: [{ label: 'Avg Sell Price', data: sortedByAvg.map(d => d.avgPrice), backgroundColor: CHART_COLORS.gold, borderRadius: 0 }],
+    },
+    options: defaultChartOpts({
+      indexAxis: 'y',
+      plugins: { legend: { display: false }, tooltip: { backgroundColor:'#1A1814', titleColor: CHART_COLORS.cream, bodyColor: CHART_COLORS.text, borderColor: CHART_COLORS.line, borderWidth: 1, callbacks: { label: (ctx) => `${fmtMoney(ctx.parsed.x)} avg (${sortedByAvg[ctx.dataIndex].sold} tickets)` } } },
+    }),
+  });
+
+  document.getElementById('tbody-marketplaces').innerHTML = data.map(d => `
+    <tr class="clickable" onclick="openMarketplaceDrilldown('${d.name.replace(/'/g, "\\'")}', ${season === 'all' ? 'null' : season})">
+      <td class="bold">${d.name}</td>
+      <td class="numeric">${fmtNum(d.sold)}</td>
+      <td class="numeric">${fmtMoney0(d.revenue)}</td>
+      <td class="numeric muted">${fmtMoney0(d.cost)}</td>
+      <td class="numeric ${d.pl >= 0 ? 'profit' : 'loss'}">${fmtMoney0(d.pl)}</td>
+      <td class="numeric muted">${fmtMoney(d.avgPrice)}</td>
+    </tr>
+  `).join('');
+}
+
+// === SALES ===
+function renderSales() {
+  const f = state.filters.sales;
+  let rows = state.sales.slice();
+  if (f.season !== 'all') rows = rows.filter(s => s.season === parseInt(f.season, 10));
+  if (f.marketplace !== 'all') rows = rows.filter(s => s.marketplace === f.marketplace);
+  if (f.result === 'profit') rows = rows.filter(s => s.pl > 0);
+  if (f.result === 'loss') rows = rows.filter(s => s.pl < 0);
+  if (f.search) {
+    const q = f.search.toLowerCase();
+    rows = rows.filter(s =>
+      (s.performer || '').toLowerCase().includes(q) ||
+      (s.marketplace || '').toLowerCase().includes(q) ||
+      String(s.season).includes(q) ||
+      (s.section || '').toLowerCase().includes(q)
+    );
+  }
+
+  // sort by sellDate desc by default
+  rows.sort((a, b) => (b.sellDate || 0) - (a.sellDate || 0));
+
+  document.getElementById('sales-count').textContent = `${fmtNum(rows.length)} Sale${rows.length === 1 ? '' : 's'} · ${fmtMoney0(rows.reduce((a, s) => a + s.sellPrice, 0))} Revenue · ${fmtMoney0(rows.reduce((a, s) => a + s.pl, 0))} P/L`;
+
+  // Cap rendering at 1000 rows for performance
+  const cap = 1000;
+  const display = rows.slice(0, cap);
+  document.getElementById('tbody-sales').innerHTML = display.map(s => `
+    <tr>
+      <td class="muted">${s.season}</td>
+      <td class="muted">${fmtDate(s.date)}</td>
+      <td>${s.performer || '—'}</td>
+      <td class="muted">${s.section}</td>
+      <td class="muted">${s.row}</td>
+      <td class="muted">${s.seat}</td>
+      <td class="numeric muted">${fmtMoney(s.cost)}</td>
+      <td class="muted">${fmtDate(s.sellDate)}</td>
+      <td>${s.marketplace || '—'}</td>
+      <td class="numeric">${fmtMoney(s.sellPrice)}</td>
+      <td class="numeric ${s.pl >= 0 ? 'profit' : 'loss'}">${fmtMoney(s.pl)}</td>
+    </tr>
+  `).join('') + (rows.length > cap ? `<tr><td colspan="11" class="muted" style="text-align:center; padding: 16px;">… ${fmtNum(rows.length - cap)} more rows. Use filters to narrow down.</td></tr>` : '');
+}
+
+// =============================================================================
+// DRILLDOWNS
+// =============================================================================
+function openDrilldown(title, html) {
+  document.getElementById('drilldown-title').innerHTML = title;
+  document.getElementById('drilldown-body').innerHTML = html;
+  document.getElementById('drilldown').classList.add('open');
+  document.getElementById('drilldown').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function closeDrilldown() {
+  document.getElementById('drilldown').classList.remove('open');
+}
+
+function openSeasonDrilldown(season) {
+  const stats = seasonStats(season);
+  const seasonSales = state.sales.filter(s => s.season === season);
+  const byPerformer = new Map();
+  for (const sale of seasonSales) {
+    if (!byPerformer.has(sale.performer)) byPerformer.set(sale.performer, { sold: 0, revenue: 0, pl: 0 });
+    const r = byPerformer.get(sale.performer);
+    r.sold += 1; r.revenue += sale.sellPrice; r.pl += (sale.sellPrice - sale.cost);
+  }
+  const perfList = [...byPerformer.entries()].map(([name, r]) => ({ name, ...r })).sort((a, b) => b.pl - a.pl);
+
+  const html = `
+    <div class="kpi-grid" style="margin-bottom: 24px;">
+      <div class="kpi"><div class="kpi-label">Revenue</div><div class="kpi-value accent">${fmtMoney0(stats.revenue)}</div></div>
+      <div class="kpi"><div class="kpi-label">P/L</div><div class="kpi-value ${stats.pl >= 0 ? 'profit' : 'loss'}">${fmtMoney0(stats.pl)}</div></div>
+      <div class="kpi"><div class="kpi-label">Sell-Through</div><div class="kpi-value">${fmtPct(stats.sellThrough)}</div></div>
+      <div class="kpi"><div class="kpi-label">Wasted Cost</div><div class="kpi-value loss">${fmtMoney0(stats.wastedCost)}</div></div>
+    </div>
+    <div class="panel-title" style="border:none; padding:0; margin-bottom: 12px;"><span>Performers in ${season}</span></div>
+    <table class="data-table">
+      <thead>
+        <tr><th>Performer</th><th class="numeric">Sold</th><th class="numeric">Revenue</th><th class="numeric">P/L</th></tr>
+      </thead>
+      <tbody>
+        ${perfList.map(p => `
+          <tr class="clickable" onclick="openPerformerDrilldown('${p.name.replace(/'/g, "\\'")}', ${season})">
+            <td>${p.name}</td>
+            <td class="numeric">${fmtNum(p.sold)}</td>
+            <td class="numeric">${fmtMoney0(p.revenue)}</td>
+            <td class="numeric ${p.pl >= 0 ? 'profit' : 'loss'}">${fmtMoney0(p.pl)}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+  openDrilldown(`Season <span>${season}</span>`, html);
+}
+
+function openPerformerDrilldown(name, seasonContext) {
+  let sales = state.sales.filter(s => s.performer === name);
+  if (seasonContext != null) sales = sales.filter(s => s.season === seasonContext);
+  sales.sort((a, b) => (b.sellDate || 0) - (a.sellDate || 0));
+
+  const totalRev = sales.reduce((a, s) => a + s.sellPrice, 0);
+  const totalPL = sales.reduce((a, s) => a + s.pl, 0);
+  const appearances = (() => {
+    let c = 0;
+    for (const v of state.performerMap.values()) if (v === name) c++;
+    return c;
+  })();
+
+  const subtitle = seasonContext ? ` · Season ${seasonContext}` : ` · All Time`;
+  const html = `
+    <div class="kpi-grid" style="margin-bottom: 24px;">
+      <div class="kpi"><div class="kpi-label">Tickets Sold</div><div class="kpi-value">${fmtNum(sales.length)}</div></div>
+      <div class="kpi"><div class="kpi-label">Revenue</div><div class="kpi-value accent">${fmtMoney0(totalRev)}</div></div>
+      <div class="kpi"><div class="kpi-label">P/L</div><div class="kpi-value ${totalPL >= 0 ? 'profit' : 'loss'}">${fmtMoney0(totalPL)}</div></div>
+      <div class="kpi"><div class="kpi-label">Appearances</div><div class="kpi-value">${fmtNum(appearances)}</div></div>
+    </div>
+    <div class="panel-title" style="border:none; padding:0; margin-bottom: 12px;"><span>Sales Detail</span></div>
+    <div class="scroll-wrap" style="max-height: 400px;">
+      <table class="data-table">
+        <thead>
+          <tr><th>Season</th><th>Show Date</th><th>Sec</th><th>Row</th><th>Seat</th><th class="numeric">Cost</th><th>Sell Date</th><th>Marketplace</th><th class="numeric">Sell Price</th><th class="numeric">P/L</th></tr>
+        </thead>
+        <tbody>
+          ${sales.slice(0, 500).map(s => `
+            <tr>
+              <td class="muted">${s.season}</td>
+              <td class="muted">${fmtDate(s.date)}</td>
+              <td class="muted">${s.section}</td>
+              <td class="muted">${s.row}</td>
+              <td class="muted">${s.seat}</td>
+              <td class="numeric muted">${fmtMoney(s.cost)}</td>
+              <td class="muted">${fmtDate(s.sellDate)}</td>
+              <td>${s.marketplace || '—'}</td>
+              <td class="numeric">${fmtMoney(s.sellPrice)}</td>
+              <td class="numeric ${s.pl >= 0 ? 'profit' : 'loss'}">${fmtMoney(s.pl)}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+  openDrilldown(`<span>${name}</span>${subtitle}`, html);
+}
+
+function openMarketplaceDrilldown(name, season) {
+  let sales = state.sales.filter(s => s.marketplace === name);
+  if (season != null) sales = sales.filter(s => s.season === season);
+  sales.sort((a, b) => (b.sellDate || 0) - (a.sellDate || 0));
+
+  const totalRev = sales.reduce((a, s) => a + s.sellPrice, 0);
+  const totalPL = sales.reduce((a, s) => a + s.pl, 0);
+  const avgPrice = sales.length ? totalRev / sales.length : 0;
+
+  const subtitle = season ? ` · Season ${season}` : ` · All Time`;
+  const html = `
+    <div class="kpi-grid" style="margin-bottom: 24px;">
+      <div class="kpi"><div class="kpi-label">Tickets Sold</div><div class="kpi-value">${fmtNum(sales.length)}</div></div>
+      <div class="kpi"><div class="kpi-label">Revenue</div><div class="kpi-value accent">${fmtMoney0(totalRev)}</div></div>
+      <div class="kpi"><div class="kpi-label">P/L</div><div class="kpi-value ${totalPL >= 0 ? 'profit' : 'loss'}">${fmtMoney0(totalPL)}</div></div>
+      <div class="kpi"><div class="kpi-label">Avg Sell Price</div><div class="kpi-value">${fmtMoney(avgPrice)}</div></div>
+    </div>
+    <div class="panel-title" style="border:none; padding:0; margin-bottom: 12px;"><span>Sales Detail</span></div>
+    <div class="scroll-wrap" style="max-height: 400px;">
+      <table class="data-table">
+        <thead><tr><th>Season</th><th>Performer</th><th>Show Date</th><th>Sell Date</th><th class="numeric">Cost</th><th class="numeric">Sell Price</th><th class="numeric">P/L</th></tr></thead>
+        <tbody>
+          ${sales.slice(0, 500).map(s => `
+            <tr>
+              <td class="muted">${s.season}</td>
+              <td>${s.performer || '—'}</td>
+              <td class="muted">${fmtDate(s.date)}</td>
+              <td class="muted">${fmtDate(s.sellDate)}</td>
+              <td class="numeric muted">${fmtMoney(s.cost)}</td>
+              <td class="numeric">${fmtMoney(s.sellPrice)}</td>
+              <td class="numeric ${s.pl >= 0 ? 'profit' : 'loss'}">${fmtMoney(s.pl)}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+  openDrilldown(`<span>${name}</span>${subtitle}`, html);
+}
+
+// =============================================================================
+// EVENT WIRING
+// =============================================================================
+document.getElementById('gate-btn').addEventListener('click', checkPassword);
+document.getElementById('pw').addEventListener('keydown', e => { if (e.key === 'Enter') checkPassword(); });
+
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById(`view-${tab.dataset.view}`).classList.add('active');
+    closeDrilldown();
+    renderActiveView();
+  });
+});
+
+document.getElementById('refresh-btn').addEventListener('click', refresh);
+document.getElementById('overview-season').addEventListener('change', renderOverview);
+document.getElementById('marketplace-season').addEventListener('change', renderMarketplaces);
+document.getElementById('performer-search').addEventListener('input', renderPerformers);
+document.getElementById('performer-sort').addEventListener('change', renderPerformers);
+document.getElementById('sales-search').addEventListener('input', e => { state.filters.sales.search = e.target.value; renderSales(); });
+document.getElementById('sales-season').addEventListener('change', e => { state.filters.sales.season = e.target.value; renderSales(); });
+document.getElementById('sales-marketplace').addEventListener('change', e => { state.filters.sales.marketplace = e.target.value; renderSales(); });
+document.getElementById('sales-result').addEventListener('change', e => { state.filters.sales.result = e.target.value; renderSales(); });
+
+// Sortable seasons table
+document.querySelectorAll('#table-seasons th').forEach(th => {
+  th.addEventListener('click', () => {
+    const col = th.dataset.col;
+    const cur = state.sortState.seasons || { col: 'season', dir: 'desc' };
+    state.sortState.seasons = { col, dir: cur.col === col && cur.dir === 'desc' ? 'asc' : 'desc' };
+    renderSeasonsTable();
+  });
+});
+
+// Auto-unlock if session is fresh
+if (sessionStorage.getItem('rh_unlocked') === '1') {
+  enterApp();
+} else {
+  document.getElementById('pw').focus();
+}
+</script>
+
+</body>
+</html>
