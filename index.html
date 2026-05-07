@@ -7,7 +7,18 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Bitter:wght@400;600;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+// Fallback CDNs if the primary fails (ad blockers / corporate networks / etc)
+if (typeof Chart === 'undefined') {
+  document.write('<script src="https://unpkg.com/chart.js@4.4.1/dist/chart.umd.min.js"><\/script>');
+}
+</script>
+<script>
+if (typeof Chart === 'undefined') {
+  document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"><\/script>');
+}
+</script>
 <style>
 :root {
   --bg: #0F0E0C;
@@ -1377,6 +1388,24 @@ function enterApp() {
 
 async function refresh() {
   document.getElementById('loading').classList.remove('hidden');
+
+  // Sanity check: Chart.js must be loaded before we try to render charts
+  if (typeof Chart === 'undefined') {
+    document.getElementById('loading').classList.add('hidden');
+    document.getElementById('main').innerHTML = `<div class="error-box">
+      <h3>Chart library failed to load</h3>
+      <div>The dashboard relies on Chart.js loaded from a CDN, and your browser couldn't reach any of the three CDNs we tried.</div>
+      <div style="margin-top: 12px;">Most likely cause: an ad blocker, privacy extension, or corporate firewall is blocking <code>cdn.jsdelivr.net</code>, <code>unpkg.com</code>, and <code>cdnjs.cloudflare.com</code>.</div>
+      <div style="margin-top: 12px;">Try one of these:</div>
+      <ul style="margin: 8px 0 8px 24px; color: var(--text-mute);">
+        <li>Open this page in an incognito/private window (most extensions are disabled there)</li>
+        <li>Whitelist <code>cdn.jsdelivr.net</code> in your ad blocker</li>
+        <li>Try a different browser</li>
+      </ul>
+    </div>`;
+    return;
+  }
+
   try {
     await loadAll();
     populateFilters();
