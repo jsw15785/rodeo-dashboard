@@ -1742,13 +1742,6 @@ function renderSeasons() {
           borderRadius: 0,
           order: 1,
         },
-        {
-          label: 'Loss',
-          data: stats.map(s => s.pl < 0 ? s.pl : null),
-          backgroundColor: CHART_COLORS.red,
-          borderRadius: 0,
-          order: 1,
-        },
       ],
     },
     options: defaultChartOpts({
