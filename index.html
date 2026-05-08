@@ -734,19 +734,19 @@ body {
     <div class="panel-grid">
       <div class="panel">
         <div class="panel-title">
-          <span>Revenue by Performer · Selected Season</span>
+          <span id="title-perf-rev">Revenue by Performer · Selected Season</span>
           <span class="right">CLICK BAR TO DRILL DOWN</span>
         </div>
         <div class="chart-wrap tall"><canvas id="chart-perf-rev"></canvas></div>
       </div>
       <div class="panel">
-        <div class="panel-title"><span>Marketplace Mix · Selected Season</span></div>
+        <div class="panel-title"><span id="title-mkt-mix">Marketplace Mix · Selected Season</span></div>
         <div class="chart-wrap tall"><canvas id="chart-mkt-mix"></canvas></div>
       </div>
     </div>
 
     <div class="panel">
-      <div class="panel-title"><span>Daily Sell Velocity · Selected Season</span></div>
+      <div class="panel-title"><span id="title-velocity">Daily Sell Velocity · Selected Season</span></div>
       <div class="chart-wrap"><canvas id="chart-velocity"></canvas></div>
     </div>
   </div>
@@ -782,6 +782,10 @@ body {
   <div class="view" id="view-performers">
     <div class="filters">
       <input class="search" id="performer-search" placeholder="SEARCH PERFORMER…" />
+      <span class="filter-label">Season</span>
+      <select class="filter" id="performer-season">
+        <option value="all">All Seasons</option>
+      </select>
       <span class="filter-label">Sort</span>
       <select class="filter" id="performer-sort">
         <option value="pl">Profit/Loss</option>
@@ -795,11 +799,11 @@ body {
 
     <div class="panel-grid">
       <div class="panel">
-        <div class="panel-title"><span>Top 10 by Profit</span></div>
+        <div class="panel-title"><span id="title-top-performers">Top 10 by Profit</span></div>
         <div class="chart-wrap tall"><canvas id="chart-top-performers"></canvas></div>
       </div>
       <div class="panel">
-        <div class="panel-title"><span>Top P/L per Appearance</span></div>
+        <div class="panel-title"><span id="title-perf-per-show">Top P/L per Appearance</span></div>
         <div class="chart-wrap tall"><canvas id="chart-perf-per-show"></canvas></div>
       </div>
     </div>
@@ -922,10 +926,10 @@ body {
 //
 // IMPORTANT: each sheet must be published individually.
 const CSV_URLS = {
-  sales:        'https://docs.google.com/spreadsheets/d/e/2PACX-1vSfUCHdYdGNhBePxoLxJP2FDMKXa1YNNVVnsreb9msvzaT_LB_tt-uxufG8xlJl-xdn7PX4c9C5w8Uz/pub?gid=369545157&single=true&output=csv',
-  tickets:      'https://docs.google.com/spreadsheets/d/e/2PACX-1vSfUCHdYdGNhBePxoLxJP2FDMKXa1YNNVVnsreb9msvzaT_LB_tt-uxufG8xlJl-xdn7PX4c9C5w8Uz/pub?gid=832176610&single=true&output=csv',
-  schedule:     'https://docs.google.com/spreadsheets/d/e/2PACX-1vSfUCHdYdGNhBePxoLxJP2FDMKXa1YNNVVnsreb9msvzaT_LB_tt-uxufG8xlJl-xdn7PX4c9C5w8Uz/pub?gid=1605992690&single=true&output=csv',
-  marketplaces: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSfUCHdYdGNhBePxoLxJP2FDMKXa1YNNVVnsreb9msvzaT_LB_tt-uxufG8xlJl-xdn7PX4c9C5w8Uz/pub?gid=1683579619&single=true&output=csv',
+  sales:        'PASTE_SALES_CSV_URL_HERE',
+  tickets:      'PASTE_TICKETS_CSV_URL_HERE',
+  schedule:     'PASTE_SCHEDULE_CSV_URL_HERE',
+  marketplaces: 'PASTE_MARKETPLACES_CSV_URL_HERE',
 };
 
 // SHA-256 of "rodeo2026" (lowercase). Replace with your own hash via:
@@ -1262,14 +1266,22 @@ function allSeasonStats() {
   return state.seasons.map(seasonStats);
 }
 
-function performerStats() {
+function performerStats(season) {
+  // season can be null/undefined (all seasons) or a specific number.
+  // Appearances and sales are both filtered to the given season when provided.
   const map = new Map();
-  // appearances from schedule
   const appearances = new Map();
-  for (const v of state.performerMap.values()) {
-    appearances.set(v, (appearances.get(v) || 0) + 1);
+  // Tally appearances from schedule (key format "season|performance")
+  for (const [key, performer] of state.performerMap.entries()) {
+    if (season != null) {
+      const s = parseInt(key.split('|')[0], 10);
+      if (s !== season) continue;
+    }
+    appearances.set(performer, (appearances.get(performer) || 0) + 1);
   }
+  // Tally sales
   for (const sale of state.sales) {
+    if (season != null && sale.season !== season) continue;
     if (!map.has(sale.performer)) {
       map.set(sale.performer, { name: sale.performer, appearances: 0, sold: 0, revenue: 0, cost: 0 });
     }
@@ -1286,7 +1298,7 @@ function performerStats() {
     r.avgPlPerShow = r.appearances > 0 ? r.pl / r.appearances : 0;
     arr.push(r);
   }
-  // include performers from schedule who never sold
+  // Include performers from schedule who never sold (only relevant when filtering)
   for (const [name, count] of appearances) {
     if (!map.has(name)) {
       arr.push({ name, appearances: count, sold: 0, revenue: 0, cost: 0, pl: 0, avgPrice: 0, avgPlPerShow: 0 });
@@ -1432,10 +1444,11 @@ function updateLastSync() {
 }
 
 function populateFilters() {
-  // Overview season
+  // Overview season - includes "All Seasons" option for combined view
   const ovs = document.getElementById('overview-season');
-  ovs.innerHTML = state.seasons.map(s => `<option value="${s}">${s}</option>`).join('');
-  ovs.value = state.seasons[0] || '';
+  ovs.innerHTML = '<option value="all">All Seasons</option>' +
+    state.seasons.map(s => `<option value="${s}">${s}</option>`).join('');
+  ovs.value = state.seasons[0] || 'all';
 
   // Marketplaces season
   const mks = document.getElementById('marketplace-season');
@@ -1452,6 +1465,11 @@ function populateFilters() {
   const ssm = document.getElementById('sales-marketplace');
   ssm.innerHTML = '<option value="all">All</option>' +
     smkts.map(m => `<option value="${m}">${m}</option>`).join('');
+
+  // Performer season filter
+  const ps = document.getElementById('performer-season');
+  ps.innerHTML = '<option value="all">All Seasons</option>' +
+    state.seasons.map(s => `<option value="${s}">${s}</option>`).join('');
 }
 
 function activeView() {
@@ -1469,20 +1487,52 @@ function renderActiveView() {
 
 // === OVERVIEW ===
 function renderOverview() {
-  const season = parseInt(document.getElementById('overview-season').value, 10);
-  if (isNaN(season)) return;
+  const seasonRaw = document.getElementById('overview-season').value;
+  const isAll = seasonRaw === 'all';
+  const season = isAll ? null : parseInt(seasonRaw, 10);
+  if (!isAll && isNaN(season)) return;
 
-  const stats = seasonStats(season);
-  // KPIs
+  // Aggregate stats either for one season or all seasons combined
+  let stats, totalSeats, totalShows, perfMap;
+  if (isAll) {
+    // Sum across every season
+    stats = state.seasons.reduce((acc, s) => {
+      const ss = seasonStats(s);
+      acc.owned += ss.owned;
+      acc.cost += ss.cost;
+      acc.sold += ss.sold;
+      acc.revenue += ss.revenue;
+      acc.pl += ss.pl;
+      acc.wastedCost += ss.wastedCost;
+      acc.expiredUnsold += ss.expiredUnsold;
+      return acc;
+    }, { owned: 0, cost: 0, sold: 0, revenue: 0, pl: 0, wastedCost: 0, expiredUnsold: 0 });
+    stats.sellThrough = stats.owned > 0 ? stats.sold / stats.owned : 0;
+    stats.avgPrice = stats.sold > 0 ? stats.revenue / stats.sold : 0;
+    totalSeats = state.seasons.reduce((a, s) => a + (state.inventory[s]?.seats || 0), 0);
+    totalShows = state.seasons.reduce((a, s) => a + (state.performancesPerSeason[s] || 0), 0);
+    // Unique performers across all seasons
+    const allPerf = new Set();
+    state.performersBySeason.forEach(set => set.forEach(p => allPerf.add(p)));
+    perfMap = allPerf;
+  } else {
+    stats = seasonStats(season);
+    totalSeats = state.inventory[season]?.seats || 0;
+    totalShows = state.performancesPerSeason[season] || 0;
+    perfMap = state.performersBySeason.get(season) || new Set();
+  }
+
+  // KPI metadata adjusts based on whether we're showing one season or all
+  const seasonLabel = isAll ? 'All seasons' : 'This season';
   const kpiHTML = [
-    { label: 'Tickets Owned', value: fmtNum(stats.owned), meta: `${state.inventory[season]?.seats || 0} seats × ${state.performancesPerSeason[season] || 0} shows` },
+    { label: 'Tickets Owned', value: fmtNum(stats.owned), meta: `${totalSeats} seat${totalSeats === 1 ? '' : 's'} × ${totalShows} show${totalShows === 1 ? '' : 's'}` },
     { label: 'Inventory Cost', value: fmtMoney0(stats.cost), meta: 'Total $ paid' },
     { label: 'Tickets Sold', value: fmtNum(stats.sold), meta: `Sell-through ${fmtPct(stats.sellThrough)}` },
     { label: 'Revenue', value: fmtMoney0(stats.revenue), klass: 'accent', meta: `Avg ${fmtMoney(stats.avgPrice)}` },
     { label: 'Profit / Loss', value: fmtMoney0(stats.pl), klass: stats.pl >= 0 ? 'profit' : 'loss', meta: stats.pl >= 0 ? 'Net positive' : 'Net loss' },
     { label: 'Wasted Cost', value: fmtMoney0(stats.wastedCost), klass: 'loss', meta: `${stats.expiredUnsold} expired tickets` },
-    { label: 'Unique Performers', value: fmtNum(state.performersBySeason.get(season)?.size || 0), meta: 'On the bill' },
-    { label: 'Marketplaces Used', value: fmtNum(new Set(state.sales.filter(s => s.season === season).map(s => s.marketplace).filter(Boolean)).size), meta: 'This season' },
+    { label: 'Unique Performers', value: fmtNum(perfMap.size), meta: 'On the bill' },
+    { label: 'Marketplaces Used', value: fmtNum(new Set((isAll ? state.sales : state.sales.filter(s => s.season === season)).map(s => s.marketplace).filter(Boolean)).size), meta: seasonLabel },
   ];
   document.getElementById('kpi-grid').innerHTML = kpiHTML.map(k => `
     <div class="kpi">
@@ -1492,27 +1542,45 @@ function renderOverview() {
     </div>
   `).join('');
 
-  // Revenue by performer
-  const seasonSales = state.sales.filter(s => s.season === season);
+  // Revenue by performer - all seasons or just one
+  const filteredSales = isAll ? state.sales : state.sales.filter(s => s.season === season);
   const byPerformer = new Map();
-  for (const sale of seasonSales) {
+  for (const sale of filteredSales) {
     if (!byPerformer.has(sale.performer)) byPerformer.set(sale.performer, { revenue: 0, pl: 0, sold: 0 });
     const r = byPerformer.get(sale.performer);
     r.revenue += sale.sellPrice;
     r.pl += (sale.sellPrice - sale.cost);
     r.sold += 1;
   }
-  const perfArr = [...byPerformer.entries()].map(([name, r]) => ({ name, ...r })).sort((a, b) => b.revenue - a.revenue);
+  let perfArr = [...byPerformer.entries()].map(([name, r]) => ({ name, ...r })).sort((a, b) => b.revenue - a.revenue);
+  // For "All Seasons" view, cap at top 25 performers by revenue (otherwise the bar chart becomes 186 rows tall)
+  const perfCap = isAll ? 25 : perfArr.length;
+  const perfDisplay = perfArr.slice(0, perfCap);
+
+  // Update chart panel titles to reflect the selection
+  const seasonSuffix = isAll ? 'All Seasons' : season;
+  const perfTitle = document.getElementById('title-perf-rev');
+  if (perfTitle) {
+    perfTitle.textContent = isAll
+      ? `Top 25 Performers by Revenue · All Seasons`
+      : `Revenue by Performer · ${season}`;
+  }
+  const mktTitle = document.getElementById('title-mkt-mix');
+  if (mktTitle) mktTitle.textContent = `Marketplace Mix · ${seasonSuffix}`;
+  const velTitle = document.getElementById('title-velocity');
+  if (velTitle) velTitle.textContent = isAll
+    ? `Monthly Sell Velocity · All Seasons`
+    : `Daily Sell Velocity · ${season}`;
 
   destroyChart('perfRev');
   state.charts.perfRev = new Chart(document.getElementById('chart-perf-rev'), {
     type: 'bar',
     data: {
-      labels: perfArr.map(p => p.name),
+      labels: perfDisplay.map(p => p.name),
       datasets: [{
         label: 'Revenue',
-        data: perfArr.map(p => p.revenue),
-        backgroundColor: perfArr.map(p => p.pl >= 0 ? CHART_COLORS.orange : CHART_COLORS.red),
+        data: perfDisplay.map(p => p.revenue),
+        backgroundColor: perfDisplay.map(p => p.pl >= 0 ? CHART_COLORS.orange : CHART_COLORS.red),
         borderRadius: 0,
       }],
     },
@@ -1528,7 +1596,7 @@ function renderOverview() {
           borderWidth: 1,
           callbacks: {
             label: (ctx) => {
-              const p = perfArr[ctx.dataIndex];
+              const p = perfDisplay[ctx.dataIndex];
               return [`Revenue: ${fmtMoney(p.revenue)}`, `P/L: ${fmtMoney(p.pl)}`, `Sold: ${p.sold}`];
             },
           },
@@ -1537,7 +1605,7 @@ function renderOverview() {
       onClick: (evt, activeEls) => {
         if (activeEls.length > 0) {
           const idx = activeEls[0].index;
-          openPerformerDrilldown(perfArr[idx].name, season);
+          openPerformerDrilldown(perfDisplay[idx].name, season);
         }
       },
       onHover: (evt, els) => evt.native.target.style.cursor = els.length ? 'pointer' : 'default',
@@ -1546,7 +1614,7 @@ function renderOverview() {
 
   // Marketplace mix donut
   const byMkt = new Map();
-  for (const sale of seasonSales) {
+  for (const sale of filteredSales) {
     const m = sale.marketplace || '(none)';
     byMkt.set(m, (byMkt.get(m) || 0) + sale.sellPrice);
   }
@@ -1590,21 +1658,24 @@ function renderOverview() {
     },
   });
 
-  // Daily velocity
-  const sortedSales = seasonSales.filter(s => s.sellDate).sort((a, b) => a.sellDate - b.sellDate);
+  // Daily velocity - for all-seasons view, group by month instead of day to keep readable
+  const sortedSales = filteredSales.filter(s => s.sellDate).sort((a, b) => a.sellDate - b.sellDate);
+  const groupByMonth = isAll;  // for all-seasons, group by YYYY-MM; otherwise YYYY-MM-DD
   const byDay = new Map();
-  let cumPL = 0;
-  const cumPLArr = [];
   for (const sale of sortedSales) {
-    const k = sale.sellDate.toISOString().slice(0, 10);
+    const iso = sale.sellDate.toISOString();
+    const k = groupByMonth ? iso.slice(0, 7) : iso.slice(0, 10);
     if (!byDay.has(k)) byDay.set(k, 0);
     byDay.set(k, byDay.get(k) + 1);
   }
-  // Sort by date and accumulate P/L
-  let runningPL = 0;
+  // Cumulative P/L over time
   const days = [...byDay.keys()].sort();
+  let runningPL = 0;
   const cumPLByDay = days.map(k => {
-    runningPL += sortedSales.filter(s => s.sellDate.toISOString().slice(0,10) === k).reduce((a,s)=>a+(s.sellPrice-s.cost),0);
+    const dayPL = sortedSales
+      .filter(s => (groupByMonth ? s.sellDate.toISOString().slice(0,7) : s.sellDate.toISOString().slice(0,10)) === k)
+      .reduce((a, s) => a + (s.sellPrice - s.cost), 0);
+    runningPL += dayPL;
     return runningPL;
   });
 
@@ -1648,14 +1719,36 @@ function renderOverview() {
 // === SEASONS ===
 function renderSeasons() {
   const stats = allSeasonStats().sort((a, b) => a.season - b.season);
+  // Split P/L into separate Profit and Loss datasets so the legend colors match the bar colors.
+  // For each season, only one of the two will have a value (the other is null), which Chart.js
+  // skips during rendering. Tooltip callback is unified to read from whichever dataset has data.
   destroyChart('seasons');
   state.charts.seasons = new Chart(document.getElementById('chart-seasons'), {
     type: 'bar',
     data: {
       labels: stats.map(s => s.season),
       datasets: [
-        { label: 'Revenue', data: stats.map(s => s.revenue), backgroundColor: CHART_COLORS.orange, borderRadius: 0, order: 2 },
-        { label: 'Profit/Loss', data: stats.map(s => s.pl), backgroundColor: stats.map(s => s.pl >= 0 ? CHART_COLORS.green : CHART_COLORS.red), borderRadius: 0, order: 1 },
+        {
+          label: 'Revenue',
+          data: stats.map(s => s.revenue),
+          backgroundColor: CHART_COLORS.orange,
+          borderRadius: 0,
+          order: 2,
+        },
+        {
+          label: 'Profit',
+          data: stats.map(s => s.pl >= 0 ? s.pl : null),
+          backgroundColor: CHART_COLORS.green,
+          borderRadius: 0,
+          order: 1,
+        },
+        {
+          label: 'Loss',
+          data: stats.map(s => s.pl < 0 ? s.pl : null),
+          backgroundColor: CHART_COLORS.red,
+          borderRadius: 0,
+          order: 1,
+        },
       ],
     },
     options: defaultChartOpts({
@@ -1667,7 +1760,12 @@ function renderSeasons() {
           bodyColor: CHART_COLORS.text,
           borderColor: CHART_COLORS.line,
           borderWidth: 1,
-          callbacks: { label: (ctx) => `${ctx.dataset.label}: ${fmtMoney(ctx.parsed.y)}` },
+          callbacks: {
+            label: (ctx) => {
+              if (ctx.parsed.y == null) return null;
+              return `${ctx.dataset.label}: ${fmtMoney(ctx.parsed.y)}`;
+            },
+          },
         },
       },
       onClick: (evt, els) => {
@@ -1713,7 +1811,12 @@ function renderSeasonsTable() {
 
 // === PERFORMERS ===
 function renderPerformers() {
-  let perfs = performerStats();
+  // Read season filter — null means all seasons
+  const seasonRaw = document.getElementById('performer-season').value;
+  const seasonFilter = seasonRaw === 'all' ? null : parseInt(seasonRaw, 10);
+  const seasonLabel = seasonFilter == null ? 'All Seasons' : seasonFilter;
+
+  let perfs = performerStats(seasonFilter);
   const search = document.getElementById('performer-search').value.trim().toLowerCase();
   if (search) perfs = perfs.filter(p => p.name.toLowerCase().includes(search));
   const sortKey = document.getElementById('performer-sort').value;
@@ -1722,8 +1825,14 @@ function renderPerformers() {
     return b[sortKey] - a[sortKey];
   });
 
-  // Top 10 by P/L (regardless of current sort)
-  const top10 = performerStats().slice().sort((a, b) => b.pl - a.pl).slice(0, 10);
+  // Update panel titles to reflect filter
+  const topTitle = document.getElementById('title-top-performers');
+  if (topTitle) topTitle.textContent = `Top 10 by Profit · ${seasonLabel}`;
+  const perShowTitle = document.getElementById('title-perf-per-show');
+  if (perShowTitle) perShowTitle.textContent = `Top P/L per Appearance · ${seasonLabel}`;
+
+  // Top 10 by P/L within selected scope
+  const top10 = performerStats(seasonFilter).slice().sort((a, b) => b.pl - a.pl).slice(0, 10);
   destroyChart('topPerformers');
   state.charts.topPerformers = new Chart(document.getElementById('chart-top-performers'), {
     type: 'bar',
@@ -1739,12 +1848,12 @@ function renderPerformers() {
     options: defaultChartOpts({
       indexAxis: 'y',
       plugins: { legend: { display: false }, tooltip: { backgroundColor:'#1A1814', titleColor: CHART_COLORS.cream, bodyColor: CHART_COLORS.text, borderColor: CHART_COLORS.line, borderWidth: 1, callbacks: { label: (ctx) => `${fmtMoney(ctx.parsed.x)}` } } },
-      onClick: (evt, els) => { if (els.length) openPerformerDrilldown(top10[els[0].index].name, null); },
+      onClick: (evt, els) => { if (els.length) openPerformerDrilldown(top10[els[0].index].name, seasonFilter); },
       onHover: (evt, els) => evt.native.target.style.cursor = els.length ? 'pointer' : 'default',
     }),
   });
 
-  const topPerShow = performerStats().filter(p => p.appearances > 0).slice().sort((a, b) => b.avgPlPerShow - a.avgPlPerShow).slice(0, 10);
+  const topPerShow = performerStats(seasonFilter).filter(p => p.appearances > 0).slice().sort((a, b) => b.avgPlPerShow - a.avgPlPerShow).slice(0, 10);
   destroyChart('perfPerShow');
   state.charts.perfPerShow = new Chart(document.getElementById('chart-perf-per-show'), {
     type: 'bar',
@@ -1760,13 +1869,13 @@ function renderPerformers() {
     options: defaultChartOpts({
       indexAxis: 'y',
       plugins: { legend: { display: false }, tooltip: { backgroundColor:'#1A1814', titleColor: CHART_COLORS.cream, bodyColor: CHART_COLORS.text, borderColor: CHART_COLORS.line, borderWidth: 1, callbacks: { label: (ctx) => { const p = topPerShow[ctx.dataIndex]; return [`${fmtMoney(p.avgPlPerShow)} per show`, `Total P/L: ${fmtMoney(p.pl)}`, `${p.appearances} appearance${p.appearances === 1 ? '' : 's'}`]; } } } },
-      onClick: (evt, els) => { if (els.length) openPerformerDrilldown(topPerShow[els[0].index].name, null); },
+      onClick: (evt, els) => { if (els.length) openPerformerDrilldown(topPerShow[els[0].index].name, seasonFilter); },
       onHover: (evt, els) => evt.native.target.style.cursor = els.length ? 'pointer' : 'default',
     }),
   });
 
   document.getElementById('tbody-performers').innerHTML = perfs.map(p => `
-    <tr class="clickable" onclick="openPerformerDrilldown('${p.name.replace(/'/g, "\\'")}', null)">
+    <tr class="clickable" onclick="openPerformerDrilldown('${p.name.replace(/'/g, "\\'")}', ${seasonFilter == null ? 'null' : seasonFilter})">
       <td class="bold">${p.name}</td>
       <td class="numeric muted">${fmtNum(p.appearances)}</td>
       <td class="numeric">${fmtNum(p.sold)}</td>
@@ -2030,6 +2139,7 @@ document.getElementById('refresh-btn').addEventListener('click', refresh);
 document.getElementById('overview-season').addEventListener('change', renderOverview);
 document.getElementById('marketplace-season').addEventListener('change', renderMarketplaces);
 document.getElementById('performer-search').addEventListener('input', renderPerformers);
+document.getElementById('performer-season').addEventListener('change', renderPerformers);
 document.getElementById('performer-sort').addEventListener('change', renderPerformers);
 document.getElementById('sales-search').addEventListener('input', e => { state.filters.sales.search = e.target.value; renderSales(); });
 document.getElementById('sales-season').addEventListener('change', e => { state.filters.sales.season = e.target.value; renderSales(); });
